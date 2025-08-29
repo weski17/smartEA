@@ -1,0 +1,81 @@
+graph TD
+    A[🎯 TRADING STRATEGIE BEWERTUNG] --> B[🛡️ TIER 1: ÜBERLEBENSFÄHIGKEIT]
+    A --> C[💰 TIER 2: PROFITABILITÄT]
+    A --> D[📊 TIER 3: EFFIZIENZ]
+    A --> E[🔍 TIER 4: REALITÄTSFAKTOREN]
+    
+    %% TIER 1: ÜBERLEBENSFÄHIGKEIT
+    B --> B1[📉 Maximum Drawdown]
+    B --> B2[⏱️ Drawdown Duration]
+    B --> B3[🔴 Consecutive Losses]
+    B --> B4[💔 Psychological Limits]
+    
+    B1 --> B1a["✅ < 15% = PASS<br/>⚠️ 15-20% = RISIKO<br/>❌ > 20% = GEFAHR"]
+    B2 --> B2a["✅ < 3 Monate = PASS<br/>⚠️ 3-6 Monate = RISIKO<br/>❌ > 6 Monate = GEFAHR"]
+    B3 --> B3a["✅ < 8 Verluste = PASS<br/>⚠️ 8-12 Verluste = RISIKO<br/>❌ > 12 Verluste = GEFAHR"]
+    B4 --> B4a["Kannst du psychologisch<br/>damit leben?"]
+    
+    %% TIER 2: PROFITABILITÄT
+    C --> C1[📈 Calmar Ratio]
+    C --> C2[📊 Sortino Ratio]
+    C --> C3[💵 Profit Factor]
+    C --> C4[🔄 Recovery Factor]
+    
+    C1 --> C1a["✅ > 1.0 = EXCELLENT<br/>⚠️ 0.5-1.0 = OK<br/>❌ < 0.5 = SCHLECHT"]
+    C2 --> C2a["✅ > 1.5 = EXCELLENT<br/>⚠️ 1.0-1.5 = OK<br/>❌ < 1.0 = SCHLECHT"]
+    C3 --> C3a["✅ > 1.3 = EXCELLENT<br/>⚠️ 1.1-1.3 = OK<br/>❌ < 1.1 = SCHLECHT"]
+    C4 --> C4a["Net Profit /<br/>Max Drawdown"]
+    
+    %% TIER 3: EFFIZIENZ
+    D --> D1[⚡ Sharpe Ratio]
+    D --> D2[🎯 Win Rate]
+    D --> D3[🎲 Risk/Reward Ratio]
+    D --> D4[📅 Trade Frequency]
+    
+    D1 --> D1a["✅ > 1.0 = EXCELLENT<br/>⚠️ 0.5-1.0 = OK<br/>❌ < 0.5 = SCHLECHT"]
+    D2 --> D2a["✅ 45-60% = OPTIMAL<br/>⚠️ 40-45% oder 60-70% = OK<br/>❌ < 40% oder > 70% = VERDÄCHTIG"]
+    D3 --> D3a["✅ > 1.5 = EXCELLENT<br/>⚠️ 1.0-1.5 = OK<br/>❌ < 1.0 = SCHLECHT"]
+    D4 --> D4a["Nicht zu viele Trades<br/>(Kosten-Effizienz)"]
+    
+    %% TIER 4: REALITÄTSFAKTOREN
+    E --> E1[💸 Trading Costs]
+    E --> E2[🎯 SL/TP Setup]
+    E --> E3[🌍 Market Conditions]
+    E --> E4[📊 Out-of-Sample Tests]
+    
+    E1 --> E1a[Slippage + Kommission<br/>+ Financing Costs]
+    E2 --> E2a[Dynamic SL/TP basierend<br/>auf Volatilitäts-Regime]
+    E3 --> E3a[Funktioniert in<br/>verschiedenen Marktphasen?]
+    E4 --> E4a[Walk-Forward Testing<br/>+ Monte Carlo]
+    
+    %% FINAL DECISION
+    B1a --> F[🏆 FINALE BEWERTUNG]
+    B2a --> F
+    B3a --> F
+    C1a --> F
+    C2a --> F
+    C3a --> F
+    D1a --> F
+    D2a --> F
+    D3a --> F
+    E4a --> F
+    
+    F --> F1["🟢 LIVE TRADING READY<br/>Alle Tier 1 + 2 bestanden"]
+    F --> F2["🟡 OPTIMIERUNG NÖTIG<br/>Tier 1 bestanden, Tier 2 verbesserbar"]
+    F --> F3["🔴 ZURÜCK ZUM DRAWING BOARD<br/>Tier 1 nicht bestanden"]
+    
+    %% GOLD-SPEZIFISCHE WARNUNG
+    F --> G[⚠️ GOLD-SPEZIFISCHE LIMITS]
+    G --> G1["Max DD Erwartung: -21.9%<br/>Recovery Zeit: bis 817 Tage<br/>Extreme Events häufiger<br/>(Kurtosis: 37.5)"]
+    
+    classDef tier1 fill:#ffcccc,stroke:#ff0000,stroke-width:3px
+    classDef tier2 fill:#fff2cc,stroke:#ff8c00,stroke-width:2px
+    classDef tier3 fill:#ccffcc,stroke:#00ff00,stroke-width:2px
+    classDef tier4 fill:#cce5ff,stroke:#0066cc,stroke-width:2px
+    classDef final fill:#e6ccff,stroke:#8000ff,stroke-width:3px
+    
+    class B,B1,B2,B3,B4,B1a,B2a,B3a,B4a tier1
+    class C,C1,C2,C3,C4,C1a,C2a,C3a,C4a tier2
+    class D,D1,D2,D3,D4,D1a,D2a,D3a,D4a tier3
+    class E,E1,E2,E3,E4,E1a,E2a,E3a,E4a tier4
+    class F,F1,F2,F3,G,G1 final
