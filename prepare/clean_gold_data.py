@@ -16,7 +16,7 @@ class XAUUSDProcessor:
     - Backup und Versionierung
     """
 
-    def __init__(self, input_path="data/orginal/XAUUSD15.csv", output_dir="data/prepared"):
+    def __init__(self, input_path="data/XAUUSD_M15_full_backup.csv", output_dir="data/prepared"):
         self.input_path = input_path
         self.output_dir = output_dir
         self.scaler = None
