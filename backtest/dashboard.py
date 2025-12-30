@@ -87,7 +87,7 @@ class TradingDashboard:
         st.sidebar.subheader("📊 Signal Parameters")
         rsi_oversold = st.sidebar.slider("RSI Oversold", 10, 40, 30, 1)
         rsi_overbought = st.sidebar.slider("RSI Overbought", 60, 90, 70, 1)
-        volume_threshold = st.sidebar.slider("Volume Threshold", 1.0, 2.0, 1.2, 0.1)
+        volume_threshold = st.sidebar.slider("Volume Threshold", 1.0, 3.0, 1.2, 0.1)
         use_trend_filter = st.sidebar.checkbox("SMA20 Trend-Filter aktivieren", value=True,
                                               help="Nur Long-Trades über SMA20")
         
