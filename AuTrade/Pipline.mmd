@@ -1,0 +1,45 @@
+flowchart TD
+    USER(["👤 Du\nrun_all.py starten"]) --> S1
+
+    S1["📋 step1_start_mt4.py\nMT4 läuft?\nNein → starten\nJa → weiter"]
+    S2["📡 step2_trigger_export.py\ntrigger.txt = START\nwartet auf DONE"]
+    EA(["⚙️ ExportHistoryEA.mq4\nläuft dauerhaft in MT4\nExportiert M1 M15 M30 H1 H4 D1\n→ Common/Files/"])
+    S3["📂 step3_wait_for_csv.py\nPrüft ob alle 6 CSVs\nin Common/Files vorhanden"]
+    S4["🔀 step4_merge.py\nOld_Data + New_Data\nDuplikate entfernen\nSession berechnen\n→ Merged_Data"]
+    S5["🔄 step5_rotate_and_merge.py\n1. Merged → Backup\n2. Old_Data leeren\n3. New_Data → Old_Data\n4. MT4 Files → New_Data\n5. Merge → Merged_Data"]
+    S6["✅ step6_verify_files.py\nAlle 6 TF vorhanden?\nZeilenanzahl plausibel?\nKein Gap?\nKeine Duplikate?\nDatum aufsteigend?"]
+
+    DONE(["🎉 FERTIG\nMerged_Data/\nXAUUSD_M1_merged.csv\nXAUUSD_M15_merged.csv\nXAUUSD_M30_merged.csv\nXAUUSD_H1_merged.csv\nXAUUSD_H4_merged.csv\nXAUUSD_D1_merged.csv"])
+
+    FAIL_S1(["❌ MT4 nicht gefunden\nPipeline stoppt"])
+    FAIL_S2(["❌ EA antwortet nicht\noder ERROR\nPipeline stoppt"])
+    FAIL_S6(["⚠️ Verify Fehler\nBericht ausgeben\nwarnung aber weiter"])
+
+    FOLDERS[("📁 AuTrade/\n├── New_Data/\n├── Old_Data/\n├── Merged_Data/\n├── Backup_Data/\n│     └── 20260306_081200/\n└── ExportHistoryEA.mq4")]
+
+    S1 -->|"MT4 OK"| S2
+    S1 -->|"Fehler"| FAIL_S1
+    S2 <-->|"trigger.txt\nSTART / RUNNING\nDONE / ERROR"| EA
+    S2 -->|"DONE"| S3
+    S2 -->|"ERROR / Timeout"| FAIL_S2
+    S3 -->|"alle CSVs da"| S4
+    S4 --> S5
+    S5 --> S6
+    S5 <-->|"lesen / schreiben"| FOLDERS
+    S6 -->|"OK"| DONE
+    S6 -->|"Warnung"| FAIL_S6
+    FAIL_S6 --> DONE
+
+    style USER fill:#4a90d9,color:#fff,stroke:#2c5f8a
+    style DONE fill:#27ae60,color:#fff,stroke:#1a7a42
+    style EA fill:#8e44ad,color:#fff,stroke:#6c3483
+    style FOLDERS fill:#f39c12,color:#fff,stroke:#d68910
+    style FAIL_S1 fill:#e74c3c,color:#fff,stroke:#c0392b
+    style FAIL_S2 fill:#e74c3c,color:#fff,stroke:#c0392b
+    style FAIL_S6 fill:#e67e22,color:#fff,stroke:#ca6f1e
+    style S1 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S2 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S3 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S4 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S5 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S6 fill:#16a085,color:#fff,stroke:#0e6655

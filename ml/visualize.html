@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Analyse - Goldpreis-Vorhersage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #3498db, #8e44ad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            min-height: 350px;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .chart-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .feature-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .feature-score {
+            background: linear-gradient(45deg, #3498db, #8e44ad);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .legend {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        canvas {
+            max-height: 300px;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+            color: white;
+            font-weight: bold;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .results-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .results-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            font-weight: bold;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0, #d3d3d3);
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32, #daa520);
+        }
+
+        .improvement-positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .improvement-negative {
+            color: #e74c3c;
+        }
+
+        .accuracy-high {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .accuracy-medium {
+            color: #f39c12;
+        }
+
+        .accuracy-low {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Machine Learning Analyse</h1>
+        <div class="subtitle">Technische Indikatoren für Goldpreis-Vorhersage (XAUUSD)</div>
+        
+        <!-- Key Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">76.0%</div>
+                <div class="stat-label">Beste Genauigkeit</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">11.0pp</div>
+                <div class="stat-label">Max. Verbesserung</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">253k</div>
+                <div class="stat-label">Datenpunkte</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Zieltypen</div>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <!-- Model Performance Comparison -->
+            <div class="chart-container">
+                <div class="chart-title">📊 Modell-Performance Vergleich</div>
+                <canvas id="performanceChart"></canvas>
+            </div>
+            
+            <!-- Best Features -->
+            <div class="chart-container">
+                <div class="chart-title">🏆 Top Features (F-Score)</div>
+                <canvas id="featuresChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <!-- Target Distribution -->
+            <div class="chart-container">
+                <div class="chart-title">🎯 Zielverteilung - Beste Kombination (Volatility)</div>
+                <canvas id="targetChart"></canvas>
+            </div>
+            
+            <!-- Improvement over Baseline -->
+            <div class="chart-container">
+                <div class="chart-title">📈 Verbesserung über Baseline</div>
+                <canvas id="improvementChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Detailed Results Table -->
+        <div class="chart-container full-width">
+            <div class="chart-title">📋 Detaillierte Ergebnisse - Alle Kombinationen</div>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Rang</th>
+                        <th>Target Type</th>
+                        <th>Model</th>
+                        <th>Accuracy</th>
+                        <th>Verbesserung</th>
+                        <th>Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="rank-1">
+                        <td>1</td>
+                        <td>Volatility</td>
+                        <td>Logistic</td>
+                        <td class="accuracy-high">76.0%</td>
+                        <td class="improvement-positive">+11.0pp</td>
+                        <td>29</td>
+                    </tr>
+                    <tr class="rank-2">
+                        <td>2</td>
+                        <td>Volatility</td>
+                        <td>Random Forest</td>
+                        <td class="accuracy-high">74.2%</td>
+                        <td class="improvement-positive">+9.1pp</td>
+                        <td>29</td>
+                    </tr>
+                    <tr class="rank-3">
+                        <td>3</td>
+                        <td>Binary</td>
+                        <td>Logistic</td>
+                        <td class="accuracy-medium">51.2%</td>
+                        <td class="improvement-positive">+0.3pp</td>
+                        <td>29</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Trend</td>
+                        <td>Logistic</td>
+                        <td class="accuracy-high">90.8%</td>
+                        <td>0.0pp</td>
+                        <td>5</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Extremes</td>
+                        <td>Logistic</td>
+                        <td class="accuracy-high">95.2%</td>
+                        <td class="improvement-negative">-0.0pp</td>
+                        <td>29</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>Breakout</td>
+                        <td>Random Forest</td>
+                        <td class="accuracy-high">88.7%</td>
+                        <td class="improvement-negative">-0.0pp</td>
+                        <td>10</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Feature Importance Details -->
+        <div class="chart-container full-width">
+            <div class="chart-title">🔍 Feature Importance Details</div>
+            <div class="feature-list">
+                <div class="feature-item highlight">
+                    <span class="feature-name">1. ATR_Normalized</span>
+                    <span class="feature-score">Beste Einzelleistung</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-name">2. VolumeRatio20</span>
+                    <span class="feature-score">F-Score: 4539.65</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-name">3. High_Low_Ratio</span>
+                    <span class="feature-score">Wichtigkeit: 0.071</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-name">4. RSI14</span>
+                    <span class="feature-score">F-Score: 62.21</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-name">5. RSI_Neutral</span>
+                    <span class="feature-score">F-Score: 3398.07</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            Datenquelle: XAUUSD M15 (2014-2025) | Methoden: Logistic Regression & Random Forest | Feature Selection: F-Regression
+        </div>
+    </div>
+
+    <script>
+        // Wait for Chart to load
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Check if Chart is available
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js nicht geladen');
+                return;
+            }
+
+            // Global chart configuration
+            Chart.defaults.font.family = 'Arial';
+            Chart.defaults.font.size = 12;
+            Chart.defaults.plugins.legend.position = 'top';
+
+            // Color schemes
+            const colors = {
+                primary: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'],
+                gradient: ['rgba(52, 152, 219, 0.8)', 'rgba(231, 76, 60, 0.8)', 'rgba(46, 204, 113, 0.8)', 
+                          'rgba(243, 156, 18, 0.8)', 'rgba(155, 89, 182, 0.8)', 'rgba(26, 188, 156, 0.8)']
+            };
+
+            // 1. Model Performance Comparison
+            const performanceCtx = document.getElementById('performanceChart');
+            if (performanceCtx) {
+                new Chart(performanceCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Volatility\n(Logistic)', 'Volatility\n(Random Forest)', 'Binary\n(Logistic)', 
+                                'Trend\n(Logistic)', 'Extremes\n(Logistic)', 'Breakout\n(Random Forest)'],
+                        datasets: [{
+                            label: 'Test Accuracy (%)',
+                            data: [76.0, 74.2, 51.2, 90.8, 95.2, 88.7],
+                            backgroundColor: colors.gradient,
+                            borderColor: colors.primary,
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Genauigkeit: ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Top Features Chart
+            const featuresCtx = document.getElementById('featuresChart');
+            if (featuresCtx) {
+                new Chart(featuresCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['RSI14', 'VolumeRatio20', 'ATR_Normalized', 'High_Low_Ratio', 'Andere'],
+                        datasets: [{
+                            data: [30, 25, 20, 15, 10],
+                            backgroundColor: colors.gradient.slice(0, 5),
+                            borderColor: colors.primary.slice(0, 5),
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 3. Target Distribution for Best Model
+            const targetCtx = document.getElementById('targetChart');
+            if (targetCtx) {
+                new Chart(targetCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Low Volatility', 'High Volatility'],
+                        datasets: [{
+                            data: [65, 35],
+                            backgroundColor: [colors.gradient[2], colors.gradient[1]],
+                            borderColor: [colors.primary[2], colors.primary[1]],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.parsed}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 4. Improvement over Baseline
+            const improvementCtx = document.getElementById('improvementChart');
+            if (improvementCtx) {
+                new Chart(improvementCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Volatility', 'Binary', 'Trend', 'Extremes', 'Breakout'],
+                        datasets: [{
+                            label: 'Verbesserung (Prozentpunkte)',
+                            data: [11.0, 0.3, 0.0, -0.0, -0.0],
+                            backgroundColor: colors.gradient.slice(0, 5),
+                            borderColor: colors.primary.slice(0, 5),
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + 'pp';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
