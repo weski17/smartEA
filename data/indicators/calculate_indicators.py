@@ -16,7 +16,7 @@ def calculate_indicators(df, rsi_period=14, atr_period=14, ema_fast=20, ema_slow
     3. RSI (Momentum)
     4. OBV (Volumen)
     5. ATR (Volatilität)
-    6. Pivot Points (Preis)
+    6. Pivot Points (Preis )
 
     Parameters:
     df: DataFrame mit OHLCV Daten
