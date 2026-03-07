@@ -14,12 +14,16 @@
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load credentials and machine-specific paths from .env
+load_dotenv()
 
 # ─────────────────────────────────────────────────────────────
 # BASE DIRECTORY
 # ─────────────────────────────────────────────────────────────
 
-BASE_DIR = r"C:\Users\Wael\Desktop\Projekts\smartEA\AuTrade"
+BASE_DIR = r"C:\Users\Wael\Desktop\Projekts\smartEA\MT5_DataPipeline"
 
 # ─────────────────────────────────────────────────────────────
 # EXPORT SETTINGS
@@ -40,13 +44,14 @@ MERGED_DATA_DIR = os.path.join(BASE_DIR, "Merged_Data", SYMBOL)
 BACKUP_DATA_DIR = os.path.join(BASE_DIR, "Backup_Data", SYMBOL)
 
 # ─────────────────────────────────────────────────────────────
-# MT5 PATHS
+# MT5 PATHS (Loaded from .env for security and privacy)
 # ─────────────────────────────────────────────────────────────
 
 MT5_EXE      = r"C:\Program Files\Vantage International MT5\terminal64.exe"
 
-_TERMINAL_ID = "AE2CC2E013FDE1E3CDF010AA51C60400"
-_APPDATA     = r"C:\Users\Wael\AppData\Roaming\MetaQuotes\Terminal"
+# These are specific to your machine and hidden in .env
+_TERMINAL_ID = os.getenv("MT5_TERMINAL_ID", "AE2CC2E013FDE1E3CDF010AA51C60400")
+_APPDATA     = os.getenv("MT5_APPDATA",     r"C:\Users\Wael\AppData\Roaming\MetaQuotes\Terminal")
 
 MT5_EXPERTS_DIR  = os.path.join(_APPDATA, _TERMINAL_ID, "MQL5", "Experts")
 MT5_COMMON_FILES = os.path.join(_APPDATA, "Common", "Files")
