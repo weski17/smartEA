@@ -97,20 +97,18 @@ def save_found_files() -> int:
     """
     found = {}
     for tf in TIMEFRAMES:
-        pattern = os.path.join(MT5_COMMON_FILES, f"{SYMBOL}_{tf}*.csv")
-        matches = glob.glob(pattern)
-        if matches:
-            # Take the most recently modified file if multiple exist
-            matches.sort(key=os.path.getmtime, reverse=True)
-            found[tf] = matches[0]
-            log(f"  Found {tf}: {os.path.basename(matches[0])}", "INFO")
+        # Exact match first (avoids M1* matching M15, M30* matching M30, etc.)
+        exact = os.path.join(MT5_COMMON_FILES, f"{SYMBOL}_{tf}.csv")
+        if os.path.exists(exact):
+            found[tf] = exact
+            log(f"  Found {tf}: {SYMBOL}_{tf}.csv", "INFO")
         else:
             log(f"  {tf}: no CSV found in Common/Files", "WARN")
 
     with open(FOUND_FILES_JSON, "w", encoding="utf-8") as f:
         json.dump(found, f, indent=2)
 
-    log(f"Manifest saved: {len(found)}/{len(TIMEFRAMES)} timeframes → {FOUND_FILES_JSON}",
+    log(f"Manifest saved: {len(found)}/{len(TIMEFRAMES)} timeframes -> {FOUND_FILES_JSON}",
         "OK" if len(found) == len(TIMEFRAMES) else "WARN")
     return len(found)
 
