@@ -3,125 +3,179 @@
 
 """
 @file    run_all.py
-@brief   Master runner — executes all pipeline steps sequentially.
+@brief   Master orchestrator — runs the complete Autrade pipeline.
 
 @description
-    Runs each step as a subprocess in order:
-      1. step1_start_mt5.py   — start MetaTrader 4 if not running
-      2. step2_trigger_export.py — copy MQ4 script to MT4 Scripts folder
-      3. step3_wait_for_csv.py   — wait until all CSV exports appear
-      4. step4_merge.py          — merge old + new data per timeframe
+    Executes all pipeline steps in sequence as subprocesses.
+    Streams each step's output live to the console.
+    Stops on critical step failures, continues on partial failures.
 
-    Each step's stdout is streamed live to the console.
-    If a critical step fails (exit code 1), the pipeline stops immediately.
-    A partial result (exit code 2) logs a warning but continues.
+    Pipeline steps:
+      Step 1 — Start MT5                   (critical)
+      Step 2 — Trigger MT5 EA export       (critical)
+      Step 3 — Verify exported CSV files   (partial)
+      Step 4 — Rotate data folders         (critical)
+      Step 5 — Merge Old_Data + New_Data   (partial)
+      Step 6 — Verify merged CSV files     (partial)
 
-    Usage:
-        python run_all.py
+    Exit code modes:
+      critical — pipeline stops immediately if step fails
+      partial  — pipeline logs warning but continues
 
-@author   Custom
-@version  1.0.0
+@returns
+    exit code 0 — all steps completed successfully
+    exit code 1 — at least one critical step failed
 """
 
 import sys
 import os
 import subprocess
+import time
 from datetime import datetime
 
 from logger import log, sep
 
-# Pipeline steps in execution order
+# ─────────────────────────────────────────────────────────────
+# PIPELINE DEFINITION
+# ─────────────────────────────────────────────────────────────
+
 STEPS = [
-    ("SCHRITT 1", "step1_start_mt5.py",      "critical"),
-    ("SCHRITT 2", "step2_trigger_export.py",  "critical"),
-    ("SCHRITT 3", "step3_wait_for_csv.py",    "partial"),
-    ("SCHRITT 4", "step4_merge.py",           "partial"),
+    # (label,              script,                      mode)
+    ("STEP 1", "step1_start_mt5.py",        "critical"),
+    ("STEP 2", "step2_trigger_export.py",   "critical"),
+    ("STEP 3", "step3_verify_exports.py",   "partial"),
+    ("STEP 4", "step4_rotate_data.py",      "critical"),
+    ("STEP 5", "step5_merge.py",            "partial"),
+    ("STEP 6", "step6_verify_merged.py",    "partial"),
 ]
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Directory containing all step scripts
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def run_step(label: str, script: str, mode: str) -> bool:
+# ─────────────────────────────────────────────────────────────
+# STEP RUNNER
+# ─────────────────────────────────────────────────────────────
+
+def run_step(label: str, script: str) -> int:
     """
-    @brief  Executes a single pipeline step as a subprocess.
+    @brief  Runs a single pipeline step as a subprocess.
 
-    @param  label   Display name for logging, e.g. 'SCHRITT 1'.
-    @param  script  Filename of the step script, e.g. 'step1_start_mt5.py'.
-    @param  mode    'critical' = stop pipeline on failure |
-                    'partial'  = log warning but continue.
-    @return True if step succeeded or was non-critical, False if critical failure.
+    @description
+        Launches the script using the same Python interpreter as run_all.py.
+        Streams stdout and stderr live to the console.
+        Returns the exit code of the subprocess.
+
+    @param  label   Display label e.g. 'STEP 1'.
+    @param  script  Filename of the step script e.g. 'step1_start_mt5.py'.
+    @return Exit code of the subprocess (0 = success).
     """
-    script_path = os.path.join(SCRIPT_DIR, script)
-    sep(label)
+    script_path = os.path.join(SCRIPTS_DIR, script)
 
     if not os.path.exists(script_path):
-        log(f"Script nicht gefunden: {script_path}", "ERROR")
-        return mode != "critical"
+        log(f"Script not found: {script_path}", "ERROR")
+        return 1
 
-    process = subprocess.Popen(
+    sep(f"{label}: {script}")
+    start = time.time()
+
+    proc = subprocess.Popen(
         [sys.executable, script_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        cwd=SCRIPT_DIR
+        bufsize=1,
+        cwd=SCRIPTS_DIR
     )
 
     # Stream output live
-    for line in process.stdout:
-        print(line, end="")
-    process.wait()
+    for line in proc.stdout:
+        print(line, end="", flush=True)
 
-    code = process.returncode
+    proc.wait()
+    elapsed = int(time.time() - start)
 
-    if code == 0:
-        log(f"{label} abgeschlossen (OK)", "OK")
-        return True
-    elif code == 2:
-        log(f"{label} abgeschlossen (teilweise)", "WARN")
-        return True  # partial is acceptable
+    if proc.returncode == 0:
+        log(f"{label} completed in {elapsed}s", "OK")
+    elif proc.returncode == 2:
+        log(f"{label} partial success in {elapsed}s (exit 2)", "WARN")
     else:
-        log(f"{label} FEHLGESCHLAGEN (exit={code})", "ERROR")
-        if mode == "critical":
-            log("Pipeline gestoppt - kritischer Fehler", "ERROR")
-            return False
-        else:
-            log("Nicht kritisch - fahre fort", "WARN")
-            return True
+        log(f"{label} FAILED in {elapsed}s (exit {proc.returncode})", "ERROR")
+
+    return proc.returncode
 
 
-def main():
+# ─────────────────────────────────────────────────────────────
+# MAIN
+# ─────────────────────────────────────────────────────────────
+
+def main() -> int:
     """
-    @brief  Entry point — runs all pipeline steps and prints final summary.
+    @brief  Executes all pipeline steps in sequence.
+
+    @description
+        Runs each step and evaluates the result based on its mode:
+          critical — exit code != 0 and != 2 stops the pipeline
+          partial  — any exit code is treated as a warning only
+
+        Collects results and prints a final summary table.
+
+    @return 0 if all critical steps passed, 1 if any critical step failed.
     """
-    start = datetime.now()
+    pipeline_start = datetime.now()
 
-    sep("AUTRADE PIPELINE")
-    log(f"Start     : {start.strftime('%Y.%m.%d %H:%M:%S')}")
-    log(f"Schritte  : {len(STEPS)}")
-    sep()
+    sep("AUTRADE PIPELINE — START")
+    log(f"Started  : {pipeline_start.strftime('%Y.%m.%d %H:%M:%S')}", "INFO")
+    log(f"Steps    : {len(STEPS)}", "INFO")
+    log(f"Scripts  : {SCRIPTS_DIR}", "INFO")
 
-    results = []
+    results      = []
+    any_critical = False
+
     for label, script, mode in STEPS:
-        success = run_step(label, script, mode)
-        results.append((label, script, success))
-        if not success:
-            break  # Critical failure — stop
+        exit_code = run_step(label, script)
 
-    # Final summary
-    elapsed = int((datetime.now() - start).total_seconds())
-    sep("PIPELINE ZUSAMMENFASSUNG")
-    for label, script, success in results:
-        icon = "OK  " if success else "FAIL"
-        print(f"  [{icon}] {label} — {script}")
+        success = exit_code in (0, 2)  # 0=OK, 2=partial OK
+        results.append((label, script, mode, exit_code, success))
 
-    total_ok = sum(1 for _, _, s in results if s)
-    log(f"Ergebnis  : {total_ok}/{len(results)} Schritte erfolgreich", 
-        "OK" if total_ok == len(results) else "WARN")
-    log(f"Dauer     : {elapsed}s")
+        if not success and mode == "critical":
+            log(f"{label} is critical — stopping pipeline", "ERROR")
+            any_critical = True
+            break
+
+        if not success and mode == "partial":
+            log(f"{label} had issues but pipeline continues", "WARN")
+
+    # ── Final summary
+    elapsed_total = int((datetime.now() - pipeline_start).total_seconds())
+
+    sep("PIPELINE SUMMARY")
+    log(f"Duration : {elapsed_total}s", "INFO")
+    log(f"Steps run: {len(results)}/{len(STEPS)}", "INFO")
     sep()
 
-    sys.exit(0 if total_ok == len(results) else 1)
+    for label, script, mode, exit_code, success in results:
+        status = "OK  " if exit_code == 0 else ("PART" if exit_code == 2 else "FAIL")
+        flag   = "critical" if mode == "critical" else "partial "
+        print(f"  [{status}] {label}  exit={exit_code}  [{flag}]  {script}")
+
+    # Steps that were not reached
+    if len(results) < len(STEPS):
+        for label, script, mode, *_ in STEPS[len(results):]:
+            print(f"  [SKIP] {label}  [{mode:8s}]  {script}")
+
+    sep()
+    if any_critical:
+        log("Pipeline FAILED — critical step did not pass", "ERROR")
+        return 1
+    else:
+        all_ok = all(r[4] for r in results)
+        if all_ok:
+            log("Pipeline completed SUCCESSFULLY", "OK")
+        else:
+            log("Pipeline completed with WARNINGS", "WARN")
+        return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

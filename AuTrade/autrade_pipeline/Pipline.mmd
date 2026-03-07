@@ -1,0 +1,44 @@
+flowchart TD
+    USER(["👤 You start the Pipeline"]) --> S1
+
+    S1["⚡ Step 1\nCheck & start MT5"]
+    S2["📡 Step 2\nTrigger MT5 export"]
+    EA(["🤖 Expert Advisor in MT5\nexports data for:\nM1 · M15 · M30 · H1 · H4 · D1"])
+    S3["🔍 Step 3\nVerify exported files"]
+    S4["🔄 Step 4\nRotate & backup folders"]
+    S5["🔀 Step 5\nMerge old + new data"]
+    S6["✅ Step 6\nVerify merged files"]
+
+    DONE(["🎉 Done!\nMerged_Data/ is up to date"])
+    FAIL(["❌ Aborted\nCritical error"])
+    WARN(["⚠️ Warning\nPartial OK — pipeline continues"])
+
+    FOLDERS[("📁 Data Folders\n├── New_Data/\n├── Old_Data/\n├── Merged_Data/\n└── Backup_Data/")]
+
+    S1 -->|"OK"| S2
+    S1 -->|"Error"| FAIL
+    S2 <-->|"trigger.txt"| EA
+    S2 -->|"DONE"| S3
+    S2 -->|"ERROR"| FAIL
+    S3 -->|"OK"| S4
+    S3 -->|"Error"| FAIL
+    S4 -->|"OK"| S5
+    S4 -->|"Error"| FAIL
+    S5 --> S6
+    S5 <-->|"read / write"| FOLDERS
+    S6 -->|"OK"| DONE
+    S6 -->|"Warning"| WARN
+    WARN --> DONE
+
+    style USER fill:#4a90d9,color:#fff,stroke:#2c5f8a
+    style DONE fill:#27ae60,color:#fff,stroke:#1a7a42
+    style EA fill:#8e44ad,color:#fff,stroke:#6c3483
+    style FOLDERS fill:#f39c12,color:#fff,stroke:#d68910
+    style FAIL fill:#e74c3c,color:#fff,stroke:#c0392b
+    style WARN fill:#e67e22,color:#fff,stroke:#ca6f1e
+    style S1 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S2 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S3 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S4 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S5 fill:#2980b9,color:#fff,stroke:#1a5276
+    style S6 fill:#16a085,color:#fff,stroke:#0e6655

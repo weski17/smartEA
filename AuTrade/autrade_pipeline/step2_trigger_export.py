@@ -3,17 +3,17 @@
 
 """
 @file    step2_trigger_export.py
-@brief   Step 2 — Triggers the MT4 EA export via a file-based signal.
+@brief   Step 2 — Triggers the MT5 EA export via a file-based signal.
 
 @description
-    Communicates with the ExportHistoryEA.mq4 Expert Advisor running in MT4
-    using a shared trigger file in the MT4 Common/Files folder.
+    Communicates with the ExportHistoryEA.mq5 Expert Advisor running in MT5
+    using a shared trigger file in the MT5 Common/Files folder.
 
     Trigger file protocol:
       Python writes  "START"   -> EA picks up the signal and begins export
       EA writes      "RUNNING" -> export is in progress
       EA writes      "DONE"    -> export completed successfully
-      EA writes      "ERROR"   -> export failed inside MT4
+      EA writes      "ERROR"   -> export failed inside MT5
       EA writes      "IDLE"    -> EA is waiting for next trigger
 
     This step:
@@ -31,17 +31,21 @@
 
 import sys
 import os
+import glob
+import json
 import time
 from datetime import datetime
 
-from config import MT5_COMMON_FILES, EXPORT_TIMEOUT_SEC, POLL_INTERVAL_SEC
+from config import MT5_COMMON_FILES, EXPORT_TIMEOUT_SEC, POLL_INTERVAL_SEC, SYMBOL, TIMEFRAMES
 from logger import log, sep
 
-# Path to the shared trigger file in MT4 Common/Files
-TRIGGER_FILE    = os.path.join(MT5_COMMON_FILES, "trigger.txt")
+FOUND_FILES_JSON = os.path.join(os.path.dirname(__file__), "_found_files.json")
+
+# Path to the shared trigger file in MT5 Common/Files
+TRIGGER_FILE   = os.path.join(MT5_COMMON_FILES, "trigger.txt")
 
 # How often to print a progress line while waiting (seconds)
-PROGRESS_EVERY  = 30
+PROGRESS_EVERY = 30
 
 
 def write_trigger(status: str) -> bool:
@@ -80,9 +84,40 @@ def read_trigger() -> str:
         return ""
 
 
+def save_found_files() -> int:
+    """
+    @brief  Scans MT5 Common/Files for exported CSVs and saves a manifest JSON.
+
+    @description
+        After EA writes DONE, this function finds all exported CSV files
+        matching SYMBOL_TIMEFRAME pattern and writes their paths to
+        _found_files.json for use by Step 3 and Step 4.
+
+    @return Number of CSV files found and saved.
+    """
+    found = {}
+    for tf in TIMEFRAMES:
+        pattern = os.path.join(MT5_COMMON_FILES, f"{SYMBOL}_{tf}*.csv")
+        matches = glob.glob(pattern)
+        if matches:
+            # Take the most recently modified file if multiple exist
+            matches.sort(key=os.path.getmtime, reverse=True)
+            found[tf] = matches[0]
+            log(f"  Found {tf}: {os.path.basename(matches[0])}", "INFO")
+        else:
+            log(f"  {tf}: no CSV found in Common/Files", "WARN")
+
+    with open(FOUND_FILES_JSON, "w", encoding="utf-8") as f:
+        json.dump(found, f, indent=2)
+
+    log(f"Manifest saved: {len(found)}/{len(TIMEFRAMES)} timeframes → {FOUND_FILES_JSON}",
+        "OK" if len(found) == len(TIMEFRAMES) else "WARN")
+    return len(found)
+
+
 def trigger_and_wait() -> bool:
     """
-    @brief  Sends START signal to the MT4 EA and waits for DONE response.
+    @brief  Sends START signal to the MT5 EA and waits for DONE response.
 
     @description
         Resets any leftover state, sends the START trigger, then polls
@@ -90,7 +125,7 @@ def trigger_and_wait() -> bool:
 
         Terminal states (stop polling):
           DONE  — export completed successfully -> return True
-          ERROR — export failed inside MT4      -> return False
+          ERROR — export failed inside MT5      -> return False
 
         In-progress states (keep polling):
           START   — EA has not yet picked up the signal
@@ -132,19 +167,21 @@ def trigger_and_wait() -> bool:
         # ── Terminal states
         if status == "DONE":
             log(f"EA responded: DONE — export complete ({elapsed}s)", "OK")
-            return True
+            log("Scanning Common/Files for exported CSVs...", "INFO")
+            n = save_found_files()
+            return n > 0
 
         if status == "ERROR":
             log(f"EA responded: ERROR after {elapsed}s", "ERROR")
-            log("Open MT4 -> Experts tab to see the error details", "ERROR")
+            log("Open MT5 -> Experts tab to see the error details", "ERROR")
             return False
 
         # ── Log status change immediately
         if status != last_status:
             if status == "RUNNING":
-                log(f"EA status changed: RUNNING — export in progress", "INFO")
+                log("EA status changed: RUNNING — export in progress", "INFO")
             elif status == "START":
-                log(f"EA status: START — waiting for EA to pick up signal", "INFO")
+                log("EA status: START — waiting for EA to pick up signal", "INFO")
             last_status = status
 
         # ── Print progress every PROGRESS_EVERY seconds
@@ -158,14 +195,14 @@ def trigger_and_wait() -> bool:
     # ── Timeout reached
     log(f"Timeout after {timeout}s — EA did not respond with DONE", "ERROR")
     log("Possible causes:", "WARN")
-    log("  1. ExportHistoryEA.mq4 is not running on any chart", "WARN")
-    log("  2. MT4 automated trading is disabled (check top toolbar)", "WARN")
+    log("  1. ExportHistoryEA.mq5 is not running on any chart", "WARN")
+    log("  2. MT5 algo trading is disabled (check top toolbar)", "WARN")
     log("  3. Export is taking longer than expected", "WARN")
     log(f"  4. Increase EXPORT_TIMEOUT_SEC in config.py (current: {timeout}s)", "WARN")
     return False
 
 
 if __name__ == "__main__":
-    sep("STEP 2: Trigger MT4 Export")
+    sep("STEP 2: Trigger MT5 Export")
     success = trigger_and_wait()
     sys.exit(0 if success else 1)
