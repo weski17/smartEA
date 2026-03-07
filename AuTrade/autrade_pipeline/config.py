@@ -27,6 +27,7 @@ BASE_DIR = r"C:\Users\Wael\Desktop\Projekts\smartEA\AuTrade"
 
 # Change this to switch symbol — all folders adjust automatically
 SYMBOL     = "XAUUSD"
+# SYMBOL   = "BTCUSD"   # ← uncomment to switch to Bitcoin
 TIMEFRAMES = ["M1", "M15", "M30", "H1", "H4", "D1"]
 
 # ─────────────────────────────────────────────────────────────
