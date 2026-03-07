@@ -22,13 +22,21 @@ import os
 BASE_DIR = r"C:\Users\Wael\Desktop\Projekts\smartEA\AuTrade"
 
 # ─────────────────────────────────────────────────────────────
-# DATA FOLDERS
+# EXPORT SETTINGS
 # ─────────────────────────────────────────────────────────────
 
-NEW_DATA_DIR    = os.path.join(BASE_DIR, "New_Data")
-OLD_DATA_DIR    = os.path.join(BASE_DIR, "Old_Data")
-MERGED_DATA_DIR = os.path.join(BASE_DIR, "Merged_Data")
-BACKUP_DATA_DIR = os.path.join(BASE_DIR, "Backup_Data")
+# Change this to switch symbol — all folders adjust automatically
+SYMBOL     = "XAUUSD"
+TIMEFRAMES = ["M1", "M15", "M30", "H1", "H4", "D1"]
+
+# ─────────────────────────────────────────────────────────────
+# DATA FOLDERS  (symbol-aware — one set of folders per symbol)
+# ─────────────────────────────────────────────────────────────
+
+NEW_DATA_DIR    = os.path.join(BASE_DIR, "New_Data",    SYMBOL)
+OLD_DATA_DIR    = os.path.join(BASE_DIR, "Old_Data",    SYMBOL)
+MERGED_DATA_DIR = os.path.join(BASE_DIR, "Merged_Data", SYMBOL)
+BACKUP_DATA_DIR = os.path.join(BASE_DIR, "Backup_Data", SYMBOL)
 
 # ─────────────────────────────────────────────────────────────
 # MT5 PATHS
@@ -39,26 +47,10 @@ MT5_EXE      = r"C:\Program Files\Vantage International MT5\terminal64.exe"
 _TERMINAL_ID = "AE2CC2E013FDE1E3CDF010AA51C60400"
 _APPDATA     = r"C:\Users\Wael\AppData\Roaming\MetaQuotes\Terminal"
 
-# Experts folder — EA goes here (runs permanently in MT5)
 MT5_EXPERTS_DIR  = os.path.join(_APPDATA, _TERMINAL_ID, "MQL5", "Experts")
-
-# Common Files — shared folder for trigger.txt and exported CSVs
 MT5_COMMON_FILES = os.path.join(_APPDATA, "Common", "Files")
 
-# ─────────────────────────────────────────────────────────────
-# EA PATH
-# ─────────────────────────────────────────────────────────────
-
-# Expert Advisor source — copy to MT5_EXPERTS_DIR and compile with F7
-# Then drag onto XAUUSD chart once — runs permanently after that
-EA_SOURCE = os.path.join(BASE_DIR, "ExportHistoryEA.mq5")
-
-# ─────────────────────────────────────────────────────────────
-# EXPORT SETTINGS
-# ─────────────────────────────────────────────────────────────
-
-SYMBOL     = "XAUUSD"
-TIMEFRAMES = ["M1", "M15", "M30", "H1", "H4", "D1"]
+EA_SOURCE = os.path.join(BASE_DIR, "autrade_pipeline", "ExportHistoryEA.mq5")
 
 # ─────────────────────────────────────────────────────────────
 # TIMING SETTINGS
