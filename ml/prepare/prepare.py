@@ -179,6 +179,14 @@ def step1_load_csv(path: str) -> pd.DataFrame:
             "Session": str,
         },
     )
+    
+    # Drop columns not needed for ML (like Spread_Punkte) to prevent NaN drops
+    keep_cols = ["Datum", "Uhrzeit", "Open", "High", "Low", "Close", "Volumen", "Session"]
+    drop_cols = [c for c in df.columns if c not in keep_cols]
+    if drop_cols:
+        log(f"Dropping unused columns: {drop_cols}")
+        df = df.drop(columns=drop_cols)
+        
     log(f"Loaded: {len(df):,} rows | columns: {list(df.columns)}")
     return df
 

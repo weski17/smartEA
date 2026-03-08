@@ -12,10 +12,11 @@
 
     Rotation order:
       1. BACKUP  : Copy Merged_Data  -> Backup_Data/YYYYMMDD_HHMMSS/
-      2. CLEAR   : Delete all files in Merged_Data
-      3. CLEAR   : Delete all files in Old_Data
-      4. ROTATE  : Move New_Data     -> Old_Data
-      5. FETCH   : Copy MT5 exports  -> New_Data
+      2. CLEAR   : Delete all files in Old_Data
+      3. ROTATE  : Copy Merged_Data  -> Old_Data
+      4. CLEAR   : Delete all files in Merged_Data
+      5. CLEAR   : Delete all files in New_Data
+      6. FETCH   : Copy MT5 exports  -> New_Data
 
     After this step:
       Old_Data/  — contains the previous merged CSVs (full history)
@@ -187,12 +188,13 @@ def rotate() -> bool:
     @brief  Executes the full folder rotation sequence.
 
     @description
-        Runs all 5 rotation steps in order:
+        Runs all 6 rotation steps in order:
           1. Backup Merged_Data
-          2. Clear Merged_Data
-          3. Clear Old_Data
-          4. Move New_Data to Old_Data
-          5. Fetch MT5 exports into New_Data
+          2. Clear Old_Data
+          3. Copy Merged_Data to Old_Data
+          4. Clear Merged_Data
+          5. Clear New_Data
+          6. Fetch MT5 exports into New_Data
 
     @return True if rotation completed without critical errors.
     """
@@ -221,26 +223,27 @@ def rotate() -> bool:
             _f.write(f"{p}\n")
     log(f"LATEST.txt:  Backup_Data/LATEST.txt", "INFO")
 
-    # ── 2. CLEAR: Merged_Data
-    sep("2/5  CLEAR: Merged_Data")
-    clear_folder(MERGED_DATA_DIR, "Merged_Data")
-
-    # ── 3. CLEAR: Old_Data
-    sep("3/5  CLEAR: Old_Data")
+    # ── 2. CLEAR: Old_Data
+    sep("2/6  CLEAR: Old_Data")
     clear_folder(OLD_DATA_DIR, "Old_Data")
 
-    # ── 4. ROTATE: New_Data → Old_Data
-    sep("4/5  ROTATE: New_Data -> Old_Data")
-    n_new = count_csv(NEW_DATA_DIR)
-    log(f"Files in New_Data: {n_new}", "INFO")
-    if n_new > 0:
-        moved = move_files(NEW_DATA_DIR, OLD_DATA_DIR, "New_Data -> Old_Data")
+    # ── 3. ROTATE: Merged_Data → Old_Data
+    sep("3/6  ROTATE: Merged_Data -> Old_Data")
+    if n_merged > 0:
+        copy_files(MERGED_DATA_DIR, OLD_DATA_DIR, "Merged_Data -> Old_Data")
     else:
-        log("New_Data is empty — nothing to rotate", "WARN")
-        moved = 0
+        log("Merged_Data is empty — nothing to rotate to Old_Data", "WARN")
 
-    # ── 5. FETCH: MT5 exports → New_Data
-    sep("5/5  FETCH: MT5 exports -> New_Data")
+    # ── 4. CLEAR: Merged_Data
+    sep("4/6  CLEAR: Merged_Data")
+    clear_folder(MERGED_DATA_DIR, "Merged_Data")
+
+    # ── 5. CLEAR: New_Data
+    sep("5/6  CLEAR: New_Data")
+    clear_folder(NEW_DATA_DIR, "New_Data")
+
+    # ── 6. FETCH: MT5 exports → New_Data
+    sep("6/6  FETCH: MT5 exports -> New_Data")
     fetched = fetch_mt5_exports()
     if fetched == 0:
         log("No MT5 exports found in Common/Files!", "ERROR")

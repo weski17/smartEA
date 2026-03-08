@@ -432,7 +432,7 @@ def test5_visual(df: pd.DataFrame) -> bool:
                     facecolor=fig.get_facecolor())
         log(f"Chart saved: {PLOT_PATH}")
 
-    plt.show()
+    # plt.show() removed to allow the pipeline to complete automatically
     log("TEST 5 PASSED - chart generated")
     return True
 

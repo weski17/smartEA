@@ -1,0 +1,46 @@
+flowchart TD
+    classDef folder fill:#E3A72F,stroke:#B9770E,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef step fill:#2E86C1,stroke:#1B4F72,stroke-width:2px,color:#fff;
+    classDef action fill:#17A589,stroke:#0E6251,stroke-width:2px,color:#fff;
+
+    MT5([📊 Frische MT5 Daten]):::action
+
+    %% Folders
+    MD[(📁 Merged_Data)]:::folder
+    OD[(📁 Old_Data)]:::folder
+    ND[(📁 New_Data)]:::folder
+    BD[(📁 Backup_Data/TIMESTAMP)]:::folder
+
+    subgraph Step4 [🔄 Step 4: Rotate Data Folders]
+        direction TB
+        S4_1[1. Backup\nMerged_Data -> Backup_Data]:::step
+        S4_2[2. Clear Old_Data\nLeeren des Ordners]:::step
+        S4_3[3. Rotate to Old\nMerged_Data -> Old_Data]:::step
+        S4_4[4. Clear Merged_Data\nLeeren des Ordners]:::step
+        S4_5[5. Clear New_Data\nLeeren des Ordners]:::step
+        S4_6[6. Fetch MT5 Data\nMT5 -> New_Data]:::step
+        
+        S4_1 --> S4_2 --> S4_3 --> S4_4 --> S4_5 --> S4_6
+    end
+
+    subgraph Step5 [🔀 Step 5: Merge Data]
+        direction TB
+        S5_1[7. Merge & Deduplicate\nOld_Data + New_Data]:::action
+    end
+
+    %% Data Flow Step 4
+    MD -. "① Kopieren" .-> S4_1 -. "Speichern" .-> BD
+    S4_2 -. "② 🗑️ Löschen" .-> OD
+    MD -. "③ Kopieren" .-> S4_3 -. "Einfügen" .-> OD
+    S4_4 -. "④ 🗑️ Löschen" .-> MD
+    S4_5 -. "⑤ 🗑️ Löschen" .-> ND
+    
+    MT5 -. "⑥ Abholen von Common/Files" .-> S4_6 -. "Einfügen" .-> ND
+
+    %% Transition to Step 5
+    Step4 =====> Step5
+
+    %% Data Flow Step 5
+    OD ==>|"Alte Historie"| S5_1
+    ND ==>|"Neue Bars (Overlap)"| S5_1
+    S5_1 ==>|"⑦ Sichern als neue Merged CSV"| MD

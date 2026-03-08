@@ -62,6 +62,8 @@ def run_pipeline(name: str, cmd: list, cwd: str) -> int:
         text=True,
         bufsize=1,
         cwd=cwd,
+        encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
 
