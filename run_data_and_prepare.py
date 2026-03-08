@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-run_all_pipelines.py
-====================
+run_data_and_prepare.py
+=======================
 Master Orchestrator for the entire smartEA data workflow.
 
 This script executes the two main pipelines in sequence:
@@ -10,8 +10,8 @@ This script executes the two main pipelines in sequence:
 2. ML Prepare Pipeline (Feature engineering and label verification)
 
 Usage:
-    python run_all_pipelines.py
-    python run_all_pipelines.py --symbol BTCUSD --tf D1
+    python run_data_and_prepare.py
+    python run_data_and_prepare.py --symbol BTCUSD --tf D1
 """
 
 import argparse
