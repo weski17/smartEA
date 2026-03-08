@@ -200,16 +200,26 @@ def rotate() -> bool:
 
     # ── 1. BACKUP: Merged_Data → Backup_Data/TIMESTAMP/
     sep("1/5  BACKUP: Merged_Data -> Backup_Data")
-    ts         = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts         = datetime.now().strftime("%Y_%m_%d__%H_%M")
     backup_sub = os.path.join(BACKUP_DATA_DIR, ts)
     os.makedirs(backup_sub, exist_ok=True)
     n_merged   = count_csv(MERGED_DATA_DIR)
-    log(f"Backup folder: {backup_sub}", "INFO")
+    log(f"Backup folder: Backup_Data/{ts}/", "INFO")
     log(f"Files in Merged_Data: {n_merged}", "INFO")
     if n_merged > 0:
         copy_files(MERGED_DATA_DIR, backup_sub, "Backup")
     else:
         log("Merged_Data is empty — nothing to backup", "WARN")
+
+    # Write LATEST.txt — always points to the most recent backup run.
+    latest_file = os.path.join(BACKUP_DATA_DIR, "LATEST.txt")
+    backup_csvs = [os.path.join(backup_sub, f)
+                   for f in os.listdir(backup_sub) if f.endswith(".csv")]
+    with open(latest_file, "w", encoding="utf-8") as _f:
+        _f.write(f"{ts}\n{backup_sub}\n")
+        for p in backup_csvs:
+            _f.write(f"{p}\n")
+    log(f"LATEST.txt:  Backup_Data/LATEST.txt", "INFO")
 
     # ── 2. CLEAR: Merged_Data
     sep("2/5  CLEAR: Merged_Data")
@@ -238,7 +248,7 @@ def rotate() -> bool:
 
     # ── Final state
     sep("ROTATION COMPLETE")
-    log(f"Backup_Data : {count_csv(backup_sub)} file(s) in {ts}", "INFO")
+    log(f"Backup_Data : {count_csv(backup_sub)} file(s) in Backup_Data/{ts}/", "INFO")
     log(f"Old_Data    : {count_csv(OLD_DATA_DIR)} file(s)", "INFO")
     log(f"New_Data    : {count_csv(NEW_DATA_DIR)} file(s)", "INFO")
     log(f"Merged_Data : {count_csv(MERGED_DATA_DIR)} file(s) (empty, ready for merge)", "INFO")
