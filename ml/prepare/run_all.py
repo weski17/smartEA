@@ -19,6 +19,7 @@ Exit codes
 1 — at least one critical step failed.
 """
 
+import argparse
 import os
 import subprocess
 import sys
@@ -71,12 +72,14 @@ def _log(msg: str, level: str = "INFO") -> None:
 # STEP RUNNER
 # ==============================================================================
 
-def run_step(label: str, script: str) -> int:
+def run_step(label: str, script: str, symbol: str, tf: str) -> int:
     """Run a single pipeline step as a subprocess and stream its output.
 
     Args:
         label:  Display label e.g. ``'STEP 1'``.
         script: Filename of the script relative to SCRIPTS_DIR.
+        symbol: Symbol to process.
+        tf:     Timeframe to process.
 
     Returns:
         Exit code of the subprocess (0 = success).
@@ -91,7 +94,7 @@ def run_step(label: str, script: str) -> int:
     start = time.time()
 
     proc = subprocess.Popen(
-        [sys.executable, script_path],
+        [sys.executable, script_path, "--symbol", symbol, "--tf", tf],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -126,9 +129,17 @@ def main() -> int:
     Returns:
         0 if all critical steps passed, 1 if any critical step failed.
     """
+    parser = argparse.ArgumentParser(description="Run ML Prepare Pipeline")
+    parser.add_argument("--symbol", type=str, default="XAUUSD", help="Symbol to process")
+    parser.add_argument("--tf", type=str, default="H4", help="Timeframe to process")
+    args, _ = parser.parse_known_args()
+
+    symbol = args.symbol.upper()
+    tf = args.tf.upper()
+
     pipeline_start = datetime.now()
 
-    _sep("ML PREPARE PIPELINE — START")
+    _sep(f"ML PREPARE PIPELINE — {symbol} {tf} — START")
     _log(f"Started : {pipeline_start.strftime('%Y-%m-%d %H:%M:%S')}", "INFO")
     _log(f"Steps   : {len(STEPS)}", "INFO")
     _log(f"Dir     : {SCRIPTS_DIR}", "INFO")
@@ -137,7 +148,7 @@ def main() -> int:
     any_critical = False
 
     for label, script, mode in STEPS:
-        exit_code = run_step(label, script)
+        exit_code = run_step(label, script, symbol, tf)
         success   = exit_code in (0, 2)
         results.append((label, script, mode, exit_code, success))
 

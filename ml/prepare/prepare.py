@@ -28,6 +28,7 @@ Saved to ``feature_engineering/<YYYY_MM_DD__HH_MM>/XAUUSD_H4_PREPARED.csv``.
 ``feature_engineering/LATEST.txt`` always contains the path to the newest run.
 """
 
+import argparse
 import io
 import os
 import sys
@@ -44,22 +45,47 @@ from scipy.stats import zscore as scipy_zscore
 
 warnings.filterwarnings("ignore")
 
+parser = argparse.ArgumentParser(description="ML Data Preparation Pipeline")
+parser.add_argument("--symbol", type=str, default="XAUUSD", help="Symbol to process (e.g., XAUUSD, BTCUSD)")
+parser.add_argument("--tf", type=str, default="H4", help="Timeframe to process (e.g., H4, D1)")
+args, _ = parser.parse_known_args()
+
+SYMBOL = args.symbol.upper()
+TIMEFRAME = args.tf.upper()
+
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
 
-SOURCE_CSV = os.path.normpath(os.path.join(
+_DP_LATEST = os.path.normpath(os.path.join(
     os.path.dirname(__file__),
     "..", "..",
-    "MT5_DataPipeline", "Backup_Data",
-    "20260306_114956", "XAUUSD_H4_ML_MERGED.csv",
+    "MT5_DataPipeline", "Backup_Data", SYMBOL, "LATEST.txt"
 ))
+
+if not os.path.isfile(_DP_LATEST):
+    raise FileNotFoundError(
+        f"DataPipeline LATEST.txt not found at '{_DP_LATEST}'.\n"
+        "Run the DataPipeline first to generate the merged datasets."
+    )
+
+with open(_DP_LATEST, encoding="utf-8") as _f:
+    _dp_lines = [l.strip() for l in _f.readlines() if l.strip()]
+
+# Find the CSV path in the LATEST.txt lines
+_csv_pattern = f"{SYMBOL}_{TIMEFRAME}_"
+_h4_csv = next((p for p in _dp_lines if _csv_pattern in p or f"{SYMBOL}_{TIMEFRAME}_ML_MERGED" in p), None)
+
+if not _h4_csv or not os.path.isfile(_h4_csv):
+    raise FileNotFoundError(f"{TIMEFRAME} CSV not found in DataPipeline LATEST.txt for {SYMBOL}: {_h4_csv}")
+
+SOURCE_CSV = _h4_csv
 
 # Each run creates its own timestamped subfolder so results are never overwritten.
 _RUN_TS      = datetime.now().strftime("%Y_%m_%d__%H_%M")
-_FE_BASE_DIR = os.path.join(os.path.dirname(__file__), "feature_engineering")
+_FE_BASE_DIR = os.path.join(os.path.dirname(__file__), "feature_engineering", SYMBOL, TIMEFRAME)
 _RUN_DIR     = os.path.join(_FE_BASE_DIR, _RUN_TS)
-OUTPUT_CSV   = os.path.join(_RUN_DIR, "XAUUSD_H4_PREPARED.csv")
+OUTPUT_CSV   = os.path.join(_RUN_DIR, f"{SYMBOL}_{TIMEFRAME}_PREPARED.csv")
 LATEST_FILE  = os.path.join(_FE_BASE_DIR, "LATEST.txt")
 
 # -- Label --------------------------------------------------------------------
@@ -727,7 +753,7 @@ def main() -> None:
     overview with recommended ML input features.
     """
     print("\n" + "=" * 65)
-    print("  ML Data Preparation - XAUUSD H4  (Version 2)")
+    print(f"  ML Data Preparation - {SYMBOL} {TIMEFRAME}  (Version 2)")
     print("=" * 65)
 
     df = step1_load_csv(SOURCE_CSV)
@@ -746,7 +772,7 @@ def main() -> None:
     # -- Save -----------------------------------------------------------------
     print("\n" + "-" * 65)
     os.makedirs(_RUN_DIR, exist_ok=True)
-    log(f"Folder created: feature_engineering/{_RUN_TS}/")
+    log(f"Folder created: feature_engineering/{SYMBOL}/{TIMEFRAME}/{_RUN_TS}/")
     log(f"Saving: {OUTPUT_CSV}")
     df.to_csv(OUTPUT_CSV, sep=";", decimal=".", float_format="%.6f")
 
@@ -754,8 +780,8 @@ def main() -> None:
         f.write(f"{_RUN_TS}\n{_RUN_DIR}\n{OUTPUT_CSV}\n")
 
     log(f"Done!  {len(df):,} rows x {len(df.columns)} columns")
-    log(f"Run folder:  feature_engineering/{_RUN_TS}/")
-    log(f"LATEST.txt:  feature_engineering/LATEST.txt")
+    log(f"Run folder:  feature_engineering/{SYMBOL}/{TIMEFRAME}/{_RUN_TS}/")
+    log(f"LATEST.txt:  feature_engineering/{SYMBOL}/{TIMEFRAME}/LATEST.txt")
     print("=" * 65 + "\n")
 
     # -- Column overview ------------------------------------------------------
@@ -830,7 +856,7 @@ def main() -> None:
         print(f"  {status}  {feat:<22} {desc}")
 
     print()
-    print("  * = especially important for XAUUSD 4H")
+    print(f"  * = especially important for {SYMBOL} {TIMEFRAME}")
     print("=" * 65 + "\n")
 
 

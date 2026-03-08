@@ -305,6 +305,11 @@ def merge_timeframe(timeframe: str, new_path: str) -> str | None:
     os.makedirs(MERGED_DATA_DIR, exist_ok=True)
     merged[out_cols].to_csv(out_path, sep=';', index=False, encoding='utf-8-sig')
 
+    # Write per-timeframe LATEST.txt so consumers can find the newest file.
+    tf_latest = os.path.join(MERGED_DATA_DIR, f"LATEST_{timeframe}.txt")
+    with open(tf_latest, "w", encoding="utf-8") as _f:
+        _f.write(f"{out_name}\n{out_path}\n")
+
     log(f"Saved    : {out_name}", "OK")
     log(f"Range    : {merged['_dt'].min().strftime('%Y.%m.%d')} to "
         f"{merged['_dt'].max().strftime('%Y.%m.%d')}", "OK")
@@ -347,6 +352,19 @@ if __name__ == "__main__":
 
     log(f"Result: {ok}/{len(results)} timeframes merged successfully",
         "OK" if ok == len(results) else "WARN")
+
+    # Write global LATEST.txt listing all successfully merged files.
+    # prepare.py (and future consumers) can read this to find the H4 CSV.
+    if ok > 0:
+        from datetime import datetime as _dt
+        ts_now    = _dt.now().strftime("%Y_%m_%d__%H_%M")
+        lat_path  = os.path.join(MERGED_DATA_DIR, "LATEST.txt")
+        with open(lat_path, "w", encoding="utf-8") as _f:
+            _f.write(f"{ts_now}\n")
+            for _tf, _path in results:
+                if _path:
+                    _f.write(f"{_tf}: {_path}\n")
+        log(f"LATEST.txt written: {lat_path}", "OK")
 
     if ok == 0:       sys.exit(1)
     elif ok < len(results): sys.exit(2)

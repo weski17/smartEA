@@ -17,6 +17,7 @@ Tests
 5. Visual test        – price chart with Long / Short / Neutral markers.
 """
 
+import argparse
 import io
 import os
 import sys
@@ -30,13 +31,21 @@ import pandas as pd
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
+parser = argparse.ArgumentParser(description="Label Verification")
+parser.add_argument("--symbol", type=str, default="XAUUSD")
+parser.add_argument("--tf", type=str, default="H4")
+args, _ = parser.parse_known_args()
+
+SYMBOL = args.symbol.upper()
+TIMEFRAME = args.tf.upper()
+
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
 
 # Paths -----------------------------------------------------------------------
 _SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-_FE_BASE_DIR = os.path.join(_SCRIPT_DIR, "feature_engineering")
+_FE_BASE_DIR = os.path.join(_SCRIPT_DIR, "feature_engineering", SYMBOL, TIMEFRAME)
 _LATEST_FILE = os.path.join(_FE_BASE_DIR, "LATEST.txt")
 
 
@@ -412,7 +421,7 @@ def test5_visual(df: pd.DataFrame) -> bool:
         ax.set_xticklabels(tick_labels, rotation=30, fontsize=7, color="#aaaaaa")
 
     fig.suptitle(
-        "XAUUSD H4 — Label Verification\n"
+        f"{SYMBOL} {TIMEFRAME} — Label Verification\n"
         "^ Long (+1)   v Short (-1)   . Neutral (0)",
         color="#e8f0eb", fontsize=13, y=0.98,
     )
@@ -481,7 +490,7 @@ def main() -> None:
     ``feature_engineering/LATEST.txt``.
     """
     print("\n" + "=" * 60)
-    print("  Label Check — XAUUSD H4")
+    print(f"  Label Check — {SYMBOL} {TIMEFRAME}")
     print("=" * 60)
 
     df = load_data()
